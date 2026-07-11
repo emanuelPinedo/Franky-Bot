@@ -27,31 +27,34 @@ client.once("clientReady", async () => {
     // BARRIDO INICIAL: crear hilos para quienes ya tienen el rol
     // ======================
 
-    const guild = client.guilds.cache.get(config.guildId);
+    try {
 
-    if (!guild) {
-        console.error("❌ No se encontró el guild configurado al arrancar.");
-        return;
+        const guild = await client.guilds.fetch(config.guildId);
+
+        await guild.members.fetch();
+
+        const miembrosConRol = guild.members.cache.filter((member) =>
+            member.roles.cache.has(config.rolGenesis)
+        );
+
+        console.log(`👥 ${miembrosConRol.size} miembros con el rol Genesis encontrados.`);
+
+        for (const member of miembrosConRol.values()) {
+
+            await crearHiloGenesis(member);
+
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        }
+
+        console.log("✅ Barrido inicial completado.");
+
+    } catch (err) {
+
+        console.error("❌ Error en el barrido inicial:");
+        console.error(err);
+
     }
-
-    await guild.members.fetch();
-
-    const miembrosConRol = guild.members.cache.filter((member) =>
-        member.roles.cache.has(config.rolGenesis)
-    );
-
-    console.log(`👥 ${miembrosConRol.size} miembros con el rol Genesis encontrados.`);
-
-    for (const member of miembrosConRol.values()) {
-
-        await crearHiloGenesis(member);
-
-        // pequeña pausa para no saturar la API de Discord
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    }
-
-    console.log("✅ Barrido inicial completado.");
 
 });
 
