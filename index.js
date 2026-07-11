@@ -4,7 +4,6 @@ import { Client, GatewayIntentBits, ActivityType } from "discord.js";
 
 import config from "./config.js";
 import { crearHiloGenesis } from "./services/genesisThreads.js";
-
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
