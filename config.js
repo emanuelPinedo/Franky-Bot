@@ -1,6 +1,6 @@
 export default {
-    guildId: "TU_GUILD_ID",
+    guildId: "957422293229928508",
 
-    forumChannel: "ID_DEL_CANAL_CONTEST", // el forum
-    rolGenesis: "ID_DEL_ROL_GENESIS"
+    forumChannel: "1525582022028951693",
+    rolGenesis: "1525581939535511824"
 };
