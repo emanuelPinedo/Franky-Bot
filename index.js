@@ -32,12 +32,19 @@ client.once("clientReady", async () => {
 
 client.on("guildMemberUpdate", async (oldMember, newMember) => {
 
-    if (newMember.guild.id !== config.guildId) return;
+    console.log(`🔍 guildMemberUpdate detectado: ${newMember.user.username}`);
+    console.log(`🔍 Guild del evento: ${newMember.guild.id} | Guild configurado: ${config.guildId}`);
+
+    if (newMember.guild.id !== config.guildId) {
+        console.log("⚠️ El evento es de otro server, se ignora.");
+        return;
+    }
 
     const teniaRolAntes = oldMember.roles.cache.has(config.rolGenesis);
     const tieneRolAhora = newMember.roles.cache.has(config.rolGenesis);
 
-    // Si no tenía el rol y ahora sí -> se lo acaban de asignar
+    console.log(`🔍 Tenía rol antes: ${teniaRolAntes} | Tiene rol ahora: ${tieneRolAhora}`);
+
     if (!teniaRolAntes && tieneRolAhora) {
 
         console.log(`🎉 ${newMember.user.username} recibió el rol Genesis.`);
