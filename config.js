@@ -1,6 +1,6 @@
 export default {
-    guildId: "957422293229928508",
+    guildId: "1392582325803421972",
 
-    forumChannel: "1525582022028951693",
-    rolGenesis: "1525581939535511824"
+    forumChannel: "1525578121992998972",
+    rolGenesis: "1505311307077783552"
 };
