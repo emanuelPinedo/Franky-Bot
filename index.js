@@ -1,0 +1,130 @@
+import "dotenv/config";
+import express from "express";
+import { Client, GatewayIntentBits, ActivityType } from "discord.js";
+
+import config from "./config.js";
+import { crearHiloGenesis } from "./services/genesisThreads.js";
+
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers // necesario para detectar cambios de rol
+    ]
+});
+
+// ======================
+// BOT LISTO
+// ======================
+
+client.once("clientReady", async () => {
+
+    console.log(`✅ ${client.user.tag} conectado.`);
+
+    await client.user.setActivity("Gestionando hilos Genesis", {
+        type: ActivityType.Watching
+    });
+
+});
+
+// ======================
+// DETECTAR ROL GENESIS
+// ======================
+
+client.on("guildMemberUpdate", async (oldMember, newMember) => {
+
+    if (newMember.guild.id !== config.guildId) return;
+
+    const teniaRolAntes = oldMember.roles.cache.has(config.rolGenesis);
+    const tieneRolAhora = newMember.roles.cache.has(config.rolGenesis);
+
+    // Si no tenía el rol y ahora sí -> se lo acaban de asignar
+    if (!teniaRolAntes && tieneRolAhora) {
+
+        console.log(`🎉 ${newMember.user.username} recibió el rol Genesis.`);
+
+        await crearHiloGenesis(newMember);
+
+    }
+
+});
+
+// ======================
+// EVENTOS
+// ======================
+
+client.on("error", (err) => {
+    console.error("❌ Error del cliente:");
+    console.error(err);
+});
+
+client.on("shardDisconnect", (event, shardId) => {
+    console.log(`❌ Shard ${shardId} desconectado.`);
+    console.log(event);
+});
+
+client.on("shardResume", (shardId) => {
+    console.log(`🔄 Shard ${shardId} reconectado.`);
+});
+
+client.on("shardError", (error) => {
+    console.error("❌ Error del shard:");
+    console.error(error);
+});
+
+// ======================
+// ERRORES GLOBALES
+// ======================
+
+process.on("unhandledRejection", (reason) => {
+    console.error("Unhandled Rejection:");
+    console.error(reason);
+});
+
+process.on("uncaughtException", (err) => {
+    console.error("Uncaught Exception:");
+    console.error(err);
+});
+
+// ======================
+// HEARTBEAT
+// ======================
+
+setInterval(() => {
+
+    console.log(
+        `❤️ Bot vivo | ${new Date().toLocaleString("es-AR", {
+            timeZone: "America/Argentina/Buenos_Aires"
+        })}`
+    );
+
+}, 60000);
+
+// ======================
+// LOGIN
+// ======================
+
+client.login(process.env.TOKEN);
+
+// ======================
+// EXPRESS (RENDER)
+// ======================
+
+const app = express();
+
+app.get("/", (req, res) => {
+
+    console.log(
+        `🏓 Ping recibido | ${new Date().toLocaleString("es-AR", {
+            timeZone: "America/Argentina/Buenos_Aires"
+        })}`
+    );
+
+    res.send("Genesis Bot funcionando.");
+
+});
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+    console.log(`🌐 Servidor escuchando en puerto ${PORT}`);
+});
