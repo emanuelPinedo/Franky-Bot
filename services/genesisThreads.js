@@ -3,9 +3,10 @@ import { ChannelType } from "discord.js";
 
 // ============================
 // Verifica si el usuario ya tiene un hilo creado
+// (busca por MENCIÓN en el mensaje inicial, no por nombre del hilo)
 // ============================
 
-async function usuarioYaTieneHilo(forumChannel, username) {
+async function usuarioYaTieneHilo(forumChannel, member) {
 
     const activos = await forumChannel.threads.fetchActive();
     const archivados = await forumChannel.threads.fetchArchived();
@@ -15,7 +16,24 @@ async function usuarioYaTieneHilo(forumChannel, username) {
         ...archivados.threads.values()
     ];
 
-    return todos.some((hilo) => hilo.name === username);
+    for (const hilo of todos) {
+
+        try {
+
+            const mensajeInicial = await hilo.fetchStarterMessage();
+
+            if (mensajeInicial && mensajeInicial.mentions.users.has(member.id)) {
+                return true;
+            }
+
+        } catch (err) {
+            // Si un hilo no tiene mensaje inicial recuperable, lo saltamos
+            console.error(`⚠️ No se pudo leer el mensaje inicial de "${hilo.name}":`, err.message);
+        }
+
+    }
+
+    return false;
 
 }
 
@@ -41,7 +59,7 @@ export async function crearHiloGenesis(member) {
 
         const username = member.user.username;
 
-        const yaExiste = await usuarioYaTieneHilo(forumChannel, username);
+        const yaExiste = await usuarioYaTieneHilo(forumChannel, member);
 
         if (yaExiste) {
             console.log(`ℹ️ ${username} ya tiene un hilo, se omite.`);
