@@ -94,6 +94,14 @@ client.on("guildMemberUpdate", async (oldMember, newMember) => {
 // EVENTOS
 // ======================
 
+client.on("debug", (info) => {
+    console.log(`🐛 [DEBUG] ${info}`);
+});
+
+client.on("warn", (info) => {
+    console.log(`⚠️ [WARN] ${info}`);
+});
+
 client.on("error", (err) => {
     console.error("❌ Error del cliente:");
     console.error(err);
