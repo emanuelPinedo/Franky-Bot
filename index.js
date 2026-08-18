@@ -80,8 +80,11 @@ client.on("guildMemberUpdate", async (oldMember, newMember) => {
     if (!teniaRolAntes && tieneRolAhora) {
 
         console.log(`🎉 ${newMember.user.username} recibió el rol Genesis.`);
+        console.log("👉 Llamando a crearHiloGenesis...");
 
         await crearHiloGenesis(newMember);
+
+        console.log("👉 crearHiloGenesis finalizó sin tirar excepción.");
 
     }
 
