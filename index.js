@@ -150,27 +150,6 @@ setInterval(() => {
 }, 60000);
 
 // ======================
-// TEST DE CONECTIVIDAD (temporal, para diagnóstico)
-// ======================
-
-console.log("🧪 Probando conectividad hacia Discord...");
-
-fetch("https://discord.com/api/v10/gateway")
-    .then((res) => res.json())
-    .then((data) => {
-        console.log("✅ Conectividad OK, respuesta de Discord:", data);
-    })
-    .catch((err) => {
-        console.error("❌ Falló la conexión a Discord:");
-        console.error(err);
-    });
-
-// Le ponemos un timeout manual para no esperar infinito
-setTimeout(() => {
-    console.log("⏱️ Han pasado 10 segundos desde el intento de fetch.");
-}, 10000);
-
-// ======================
 // LOGIN
 // ======================
 
