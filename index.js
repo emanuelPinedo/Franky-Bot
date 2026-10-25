@@ -4,6 +4,7 @@ import { Client, GatewayIntentBits, ActivityType } from "discord.js";
 
 import config from "./config.js";
 import { crearHiloGenesis } from "./services/genesisThreads.js";
+import { iniciarRecordatorioCC } from "./services/recordatorioCC.js";
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -22,6 +23,12 @@ client.once("clientReady", async () => {
     await client.user.setActivity("Gestionando hilos Genesis", {
         type: ActivityType.Watching
     });
+
+    await client.user.setActivity("Gestionando hilos Genesis", {
+        type: ActivityType.Watching
+    });
+
+    iniciarRecordatorioCC(client);
 
     // ======================
     // BARRIDO INICIAL: crear hilos para quienes ya tienen el rol
