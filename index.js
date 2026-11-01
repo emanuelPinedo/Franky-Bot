@@ -1,3 +1,4 @@
+
 import "dotenv/config";
 import express from "express";
 import { Client, GatewayIntentBits, ActivityType } from "discord.js";
@@ -82,6 +83,7 @@ client.on("guildMemberUpdate", async (oldMember, newMember) => {
 
             console.log("✅ crearHiloGenesis finalizó.");
         }
+
     } catch (err) {
         console.error("❌ Error en guildMemberUpdate:");
         console.error(err);
@@ -101,7 +103,6 @@ client.on("shardDisconnect", (event, shardId) => {
     console.error(`❌ Shard ${shardId} desconectado.`);
     console.error("Código:", event.code);
     console.error("Motivo:", event.reason);
-    console.error("¿Reanudable?:", event.code !== 1000 && event.code !== 1001);
 });
 
 client.on("shardReconnecting", (shardId) => {
@@ -119,6 +120,15 @@ client.on("shardReady", (shardId) => {
 client.on("shardError", (error) => {
     console.error("❌ Error del shard:");
     console.error(error);
+});
+
+// Diagnóstico adicional de Gateway
+client.on("debug", (info) => {
+    console.log("🔎 Discord Debug:", info);
+});
+
+client.on("warn", (info) => {
+    console.warn("⚠️ Discord Warning:", info);
 });
 
 // ======================
@@ -150,19 +160,25 @@ setInterval(() => {
 }, 60000);
 
 // ======================
-// LOGIN
+// LOGIN Y DIAGNÓSTICO
 // ======================
 
-console.log("🔑 TOKEN configurado:", Boolean(process.env.TOKEN));
+const token = process.env.TOKEN?.trim();
 
-client.login(process.env.TOKEN)
-    .then(() => {
-        console.log("🔄 Login de Discord iniciado.");
-    })
-    .catch((err) => {
-        console.error("❌ Error al iniciar sesión en Discord:");
-        console.error(err);
-    });
+if (!token) {
+    console.error("❌ TOKEN no está configurado en Render.");
+} else {
+    console.log("🔑 TOKEN encontrado. Iniciando login de Discord...");
+
+    client.login(token)
+        .then(() => {
+            console.log("🔄 Login de Discord iniciado correctamente.");
+        })
+        .catch((err) => {
+            console.error("❌ Error al iniciar sesión en Discord:");
+            console.error(err);
+        });
+}
 
 // ======================
 // EXPRESS (RENDER)
