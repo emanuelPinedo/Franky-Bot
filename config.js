@@ -6,7 +6,7 @@ export default {
 
         recordatorioCC: {
         dia: 0,        // 0 = domingo
-        hora: 10,       // 10 AM (hora Argentina)
+        hora: 12,       // 12 PM (hora Argentina)
         minuto: 0,
         drive: "https://drive.google.com/drive/folders/1wynidZbjCxoyGC5pUGGTXcp8linZDUUe?usp=sharing"      // opcional: pegá acá el link del Drive y se agrega al mensaje
     }
