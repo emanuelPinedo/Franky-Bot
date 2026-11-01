@@ -5,10 +5,11 @@ import { Client, GatewayIntentBits, ActivityType } from "discord.js";
 import config from "./config.js";
 import { crearHiloGenesis } from "./services/genesisThreads.js";
 import { iniciarRecordatorioCC } from "./services/recordatorioCC.js";
+
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMembers // necesario para detectar cambios de rol
+        GatewayIntentBits.GuildMembers
     ]
 });
 
@@ -17,12 +18,7 @@ const client = new Client({
 // ======================
 
 client.once("clientReady", async () => {
-
-    console.log(`✅ ${client.user.tag} conectado.`);
-
-    await client.user.setActivity("Gestionando hilos Genesis", {
-        type: ActivityType.Watching
-    });
+    console.log(`✅ ${client.user.tag} conectado correctamente.`);
 
     await client.user.setActivity("Gestionando hilos Genesis", {
         type: ActivityType.Watching
@@ -31,11 +27,10 @@ client.once("clientReady", async () => {
     iniciarRecordatorioCC(client);
 
     // ======================
-    // BARRIDO INICIAL: crear hilos para quienes ya tienen el rol
+    // BARRIDO INICIAL
     // ======================
 
     try {
-
         const guild = await client.guilds.fetch(config.guildId);
 
         await guild.members.fetch();
@@ -44,25 +39,21 @@ client.once("clientReady", async () => {
             member.roles.cache.has(config.rolGenesis)
         );
 
-        console.log(`👥 ${miembrosConRol.size} miembros con el rol Genesis encontrados.`);
+        console.log(
+            `👥 ${miembrosConRol.size} miembros con el rol Genesis encontrados.`
+        );
 
         for (const member of miembrosConRol.values()) {
-
             await crearHiloGenesis(member);
-
             await new Promise((resolve) => setTimeout(resolve, 1000));
-
         }
 
         console.log("✅ Barrido inicial completado.");
 
     } catch (err) {
-
         console.error("❌ Error en el barrido inicial:");
         console.error(err);
-
     }
-
 });
 
 // ======================
@@ -70,35 +61,35 @@ client.once("clientReady", async () => {
 // ======================
 
 client.on("guildMemberUpdate", async (oldMember, newMember) => {
+    try {
+        console.log(`🔍 guildMemberUpdate detectado: ${newMember.user.username}`);
 
-    console.log(`🔍 guildMemberUpdate detectado: ${newMember.user.username}`);
-    console.log(`🔍 Guild del evento: ${newMember.guild.id} | Guild configurado: ${config.guildId}`);
+        if (newMember.guild.id !== config.guildId) {
+            return;
+        }
 
-    if (newMember.guild.id !== config.guildId) {
-        console.log("⚠️ El evento es de otro server, se ignora.");
-        return;
+        const teniaRolAntes = oldMember.roles.cache.has(config.rolGenesis);
+        const tieneRolAhora = newMember.roles.cache.has(config.rolGenesis);
+
+        console.log(
+            `🔍 Tenía rol antes: ${teniaRolAntes} | Tiene rol ahora: ${tieneRolAhora}`
+        );
+
+        if (!teniaRolAntes && tieneRolAhora) {
+            console.log(`🎉 ${newMember.user.username} recibió el rol Genesis.`);
+
+            await crearHiloGenesis(newMember);
+
+            console.log("✅ crearHiloGenesis finalizó.");
+        }
+    } catch (err) {
+        console.error("❌ Error en guildMemberUpdate:");
+        console.error(err);
     }
-
-    const teniaRolAntes = oldMember.roles.cache.has(config.rolGenesis);
-    const tieneRolAhora = newMember.roles.cache.has(config.rolGenesis);
-
-    console.log(`🔍 Tenía rol antes: ${teniaRolAntes} | Tiene rol ahora: ${tieneRolAhora}`);
-
-    if (!teniaRolAntes && tieneRolAhora) {
-
-        console.log(`🎉 ${newMember.user.username} recibió el rol Genesis.`);
-        console.log("👉 Llamando a crearHiloGenesis...");
-
-        await crearHiloGenesis(newMember);
-
-        console.log("👉 crearHiloGenesis finalizó sin tirar excepción.");
-
-    }
-
 });
 
 // ======================
-// EVENTOS
+// EVENTOS DE DISCORD
 // ======================
 
 client.on("error", (err) => {
@@ -107,12 +98,22 @@ client.on("error", (err) => {
 });
 
 client.on("shardDisconnect", (event, shardId) => {
-    console.log(`❌ Shard ${shardId} desconectado.`);
-    console.log(event);
+    console.error(`❌ Shard ${shardId} desconectado.`);
+    console.error("Código:", event.code);
+    console.error("Motivo:", event.reason);
+    console.error("¿Reanudable?:", event.code !== 1000 && event.code !== 1001);
+});
+
+client.on("shardReconnecting", (shardId) => {
+    console.log(`🔄 Shard ${shardId} intentando reconectar...`);
 });
 
 client.on("shardResume", (shardId) => {
     console.log(`🔄 Shard ${shardId} reconectado.`);
+});
+
+client.on("shardReady", (shardId) => {
+    console.log(`✅ Shard ${shardId} conectado.`);
 });
 
 client.on("shardError", (error) => {
@@ -125,12 +126,12 @@ client.on("shardError", (error) => {
 // ======================
 
 process.on("unhandledRejection", (reason) => {
-    console.error("Unhandled Rejection:");
+    console.error("❌ Unhandled Rejection:");
     console.error(reason);
 });
 
 process.on("uncaughtException", (err) => {
-    console.error("Uncaught Exception:");
+    console.error("❌ Uncaught Exception:");
     console.error(err);
 });
 
@@ -139,20 +140,29 @@ process.on("uncaughtException", (err) => {
 // ======================
 
 setInterval(() => {
-
     console.log(
-        `❤️ Bot vivo | ${new Date().toLocaleString("es-AR", {
+        `❤️ Proceso vivo | Discord: ${
+            client.isReady() ? "CONECTADO" : "DESCONECTADO"
+        } | ${new Date().toLocaleString("es-AR", {
             timeZone: "America/Argentina/Buenos_Aires"
         })}`
     );
-
 }, 60000);
 
 // ======================
 // LOGIN
 // ======================
 
-client.login(process.env.TOKEN);
+console.log("🔑 TOKEN configurado:", Boolean(process.env.TOKEN));
+
+client.login(process.env.TOKEN)
+    .then(() => {
+        console.log("🔄 Login de Discord iniciado.");
+    })
+    .catch((err) => {
+        console.error("❌ Error al iniciar sesión en Discord:");
+        console.error(err);
+    });
 
 // ======================
 // EXPRESS (RENDER)
@@ -161,7 +171,6 @@ client.login(process.env.TOKEN);
 const app = express();
 
 app.get("/", (req, res) => {
-
     console.log(
         `🏓 Ping recibido | ${new Date().toLocaleString("es-AR", {
             timeZone: "America/Argentina/Buenos_Aires"
@@ -169,7 +178,6 @@ app.get("/", (req, res) => {
     );
 
     res.send("Genesis Bot funcionando.");
-
 });
 
 const PORT = process.env.PORT || 3000;
