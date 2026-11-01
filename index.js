@@ -165,6 +165,10 @@ setInterval(() => {
 
 const token = process.env.TOKEN?.trim();
 
+fetch("https://discord.com/api/v10/gateway")
+    .then((r) => console.log("🌍 Test gateway HTTP:", r.status))
+    .catch((e) => console.error("🌍 Test gateway falló:", e.message));
+
 if (!token) {
     console.error("❌ TOKEN no está configurado en Render.");
 } else {
