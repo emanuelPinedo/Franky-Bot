@@ -16,7 +16,7 @@ const client = new Client({
 // BOT LISTO
 // ======================
 
-client.once("clientReady", async () => {
+client.once("ready", async () => {
 
     console.log(`✅ ${client.user.tag} conectado.`);
 
