@@ -124,20 +124,23 @@ setInterval(() => {
 }, 60000);
 
 // ======================
-// INICIALIZACIÓN
+// INICIALIZACIÓN Y LOGIN
 // ======================
 app.listen(PORT, () => {
     console.log(`🌐 Servidor Web listo en puerto ${PORT}`);
     
-    // Primero Express abre puerto, después Discord inicia sesión
     const token = process.env.TOKEN?.trim();
 
     if (!token) {
         console.error("❌ TOKEN no está configurado en el entorno de Render.");
-    } else {
+        return;
+    }
+
+    // Le damos 2 segundos al puerto HTTP para establecer la red antes de abrir el WebSocket
+    setTimeout(() => {
         console.log("🔑 Iniciando sesión en Discord...");
         client.login(token).catch((err) => {
             console.error("❌ Error al iniciar sesión en Discord:", err);
         });
-    }
+    }, 2000);
 });
