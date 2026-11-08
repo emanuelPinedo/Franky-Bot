@@ -14,7 +14,7 @@ const client = new Client({
 });
 
 // ======================
-// CONFIGURACIÓN DE EXPRESS
+// EXPRESS (RENDER HEALTH CHECK)
 // ======================
 const app = express();
 
@@ -30,7 +30,7 @@ app.get("/", (req, res) => {
 const PORT = process.env.PORT || 3000;
 
 // ======================
-// EVENTOS DE DISCORD
+// BOT LISTO
 // ======================
 client.once("clientReady", async () => {
     console.log(`✅ ${client.user.tag} conectado correctamente.`);
@@ -39,13 +39,15 @@ client.once("clientReady", async () => {
         type: ActivityType.Watching
     });
 
-    // Inicia la programación del cron correctamente
     iniciarRecordatorioCC(client);
 
-    // Se ejecuta en segundo plano para no congelar la respuesta del bot
-    hacerBarridoInicial();
+    // Se dispara de forma asíncrona en segundo plano sin congelar el login
+    hacerBarridoInicial().catch(err => console.error("❌ Error en el barrido inicial:", err));
 });
 
+// ======================
+// DETECTAR ROL GENESIS
+// ======================
 client.on("guildMemberUpdate", async (oldMember, newMember) => {
     try {
         console.log(`🔍 guildMemberUpdate detectado: ${newMember.user.username}`);
@@ -54,10 +56,6 @@ client.on("guildMemberUpdate", async (oldMember, newMember) => {
 
         const teniaRolAntes = oldMember.roles.cache.has(config.rolGenesis);
         const tieneRolAhora = newMember.roles.cache.has(config.rolGenesis);
-
-        console.log(
-            `🔍 Tenía rol antes: ${teniaRolAntes} | Tiene rol ahora: ${tieneRolAhora}`
-        );
 
         if (!teniaRolAntes && tieneRolAhora) {
             console.log(`🎉 ${newMember.user.username} recibió el rol Genesis.`);
@@ -69,6 +67,9 @@ client.on("guildMemberUpdate", async (oldMember, newMember) => {
     }
 });
 
+// ======================
+// EVENTOS Y ERRORES
+// ======================
 client.on("error", (err) => console.error("❌ Error del cliente:", err));
 
 client.on("shardDisconnect", (event, shardId) => {
@@ -79,14 +80,12 @@ client.on("shardReconnecting", (shardId) => console.log(`🔄 Shard ${shardId} i
 client.on("shardResume", (shardId) => console.log(`🔄 Shard ${shardId} reconectado.`));
 client.on("shardReady", (shardId) => console.log(`✅ Shard ${shardId} conectado.`));
 client.on("shardError", (error) => console.error("❌ Error del shard:", error));
-client.on("debug", (info) => console.log("🔎 Discord Debug:", info));
-client.on("warn", (info) => console.warn("⚠️ Discord Warning:", info));
 
 process.on("unhandledRejection", (reason) => console.error("❌ Unhandled Rejection:", reason));
 process.on("uncaughtException", (err) => console.error("❌ Uncaught Exception:", err));
 
 // ======================
-// BARRIDO INICIAL
+// BARRIDO INICIAL (ASÍNCRONO)
 // ======================
 async function hacerBarridoInicial() {
     try {
@@ -111,7 +110,7 @@ async function hacerBarridoInicial() {
 }
 
 // ======================
-// HEARTBEAT LOG
+// HEARTBEAT
 // ======================
 setInterval(() => {
     console.log(
@@ -124,19 +123,19 @@ setInterval(() => {
 }, 60000);
 
 // ======================
-// INICIALIZACIÓN Y LOGIN
+// ARRANQUE DEL SERVIDOR Y LOGIN
 // ======================
 app.listen(PORT, () => {
-    console.log(`🌐 Servidor Web listo en puerto ${PORT}`);
+    console.log(`🌐 Servidor web listo en puerto ${PORT}`);
     
     const token = process.env.TOKEN?.trim();
 
     if (!token) {
-        console.error("❌ TOKEN no está configurado en el entorno de Render.");
+        console.error("❌ TOKEN no está configurado en las variables de entorno.");
         return;
     }
 
-    // Le damos 2 segundos al puerto HTTP para establecer la red antes de abrir el WebSocket
+    // Retardo de 2 segundos para estabilizar la red del contenedor antes de conectar el WebSocket
     setTimeout(() => {
         console.log("🔑 Iniciando sesión en Discord...");
         client.login(token).catch((err) => {
