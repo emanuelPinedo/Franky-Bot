@@ -1,4 +1,3 @@
-
 import "dotenv/config";
 import express from "express";
 import { Client, GatewayIntentBits, ActivityType } from "discord.js";
@@ -15,9 +14,24 @@ const client = new Client({
 });
 
 // ======================
-// BOT LISTO
+// CONFIGURACIÓN DE EXPRESS
 // ======================
+const app = express();
 
+app.get("/", (req, res) => {
+    console.log(
+        `🏓 Ping recibido | ${new Date().toLocaleString("es-AR", {
+            timeZone: "America/Argentina/Buenos_Aires"
+        })}`
+    );
+    res.send("Genesis Bot funcionando.");
+});
+
+const PORT = process.env.PORT || 3000;
+
+// ======================
+// EVENTOS DE DISCORD
+// ======================
 client.once("clientReady", async () => {
     console.log(`✅ ${client.user.tag} conectado correctamente.`);
 
@@ -25,49 +39,18 @@ client.once("clientReady", async () => {
         type: ActivityType.Watching
     });
 
+    // Inicia la programación del cron correctamente
     iniciarRecordatorioCC(client);
 
-    // ======================
-    // BARRIDO INICIAL
-    // ======================
-
-    try {
-        const guild = await client.guilds.fetch(config.guildId);
-
-        await guild.members.fetch();
-
-        const miembrosConRol = guild.members.cache.filter((member) =>
-            member.roles.cache.has(config.rolGenesis)
-        );
-
-        console.log(
-            `👥 ${miembrosConRol.size} miembros con el rol Genesis encontrados.`
-        );
-
-        for (const member of miembrosConRol.values()) {
-            await crearHiloGenesis(member);
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-        }
-
-        console.log("✅ Barrido inicial completado.");
-
-    } catch (err) {
-        console.error("❌ Error en el barrido inicial:");
-        console.error(err);
-    }
+    // Se ejecuta en segundo plano para no congelar la respuesta del bot
+    hacerBarridoInicial();
 });
-
-// ======================
-// DETECTAR ROL GENESIS
-// ======================
 
 client.on("guildMemberUpdate", async (oldMember, newMember) => {
     try {
         console.log(`🔍 guildMemberUpdate detectado: ${newMember.user.username}`);
 
-        if (newMember.guild.id !== config.guildId) {
-            return;
-        }
+        if (newMember.guild.id !== config.guildId) return;
 
         const teniaRolAntes = oldMember.roles.cache.has(config.rolGenesis);
         const tieneRolAhora = newMember.roles.cache.has(config.rolGenesis);
@@ -78,77 +61,58 @@ client.on("guildMemberUpdate", async (oldMember, newMember) => {
 
         if (!teniaRolAntes && tieneRolAhora) {
             console.log(`🎉 ${newMember.user.username} recibió el rol Genesis.`);
-
             await crearHiloGenesis(newMember);
-
             console.log("✅ crearHiloGenesis finalizó.");
         }
-
     } catch (err) {
-        console.error("❌ Error en guildMemberUpdate:");
-        console.error(err);
+        console.error("❌ Error en guildMemberUpdate:", err);
     }
 });
 
-// ======================
-// EVENTOS DE DISCORD
-// ======================
-
-client.on("error", (err) => {
-    console.error("❌ Error del cliente:");
-    console.error(err);
-});
+client.on("error", (err) => console.error("❌ Error del cliente:", err));
 
 client.on("shardDisconnect", (event, shardId) => {
-    console.error(`❌ Shard ${shardId} desconectado.`);
-    console.error("Código:", event.code);
-    console.error("Motivo:", event.reason);
+    console.error(`❌ Shard ${shardId} desconectado. Código: ${event.code} | Motivo: ${event.reason}`);
 });
 
-client.on("shardReconnecting", (shardId) => {
-    console.log(`🔄 Shard ${shardId} intentando reconectar...`);
-});
+client.on("shardReconnecting", (shardId) => console.log(`🔄 Shard ${shardId} intentando reconectar...`));
+client.on("shardResume", (shardId) => console.log(`🔄 Shard ${shardId} reconectado.`));
+client.on("shardReady", (shardId) => console.log(`✅ Shard ${shardId} conectado.`));
+client.on("shardError", (error) => console.error("❌ Error del shard:", error));
+client.on("debug", (info) => console.log("🔎 Discord Debug:", info));
+client.on("warn", (info) => console.warn("⚠️ Discord Warning:", info));
 
-client.on("shardResume", (shardId) => {
-    console.log(`🔄 Shard ${shardId} reconectado.`);
-});
-
-client.on("shardReady", (shardId) => {
-    console.log(`✅ Shard ${shardId} conectado.`);
-});
-
-client.on("shardError", (error) => {
-    console.error("❌ Error del shard:");
-    console.error(error);
-});
-
-// Diagnóstico adicional de Gateway
-client.on("debug", (info) => {
-    console.log("🔎 Discord Debug:", info);
-});
-
-client.on("warn", (info) => {
-    console.warn("⚠️ Discord Warning:", info);
-});
+process.on("unhandledRejection", (reason) => console.error("❌ Unhandled Rejection:", reason));
+process.on("uncaughtException", (err) => console.error("❌ Uncaught Exception:", err));
 
 // ======================
-// ERRORES GLOBALES
+// BARRIDO INICIAL
 // ======================
+async function hacerBarridoInicial() {
+    try {
+        const guild = await client.guilds.fetch(config.guildId);
+        await guild.members.fetch();
 
-process.on("unhandledRejection", (reason) => {
-    console.error("❌ Unhandled Rejection:");
-    console.error(reason);
-});
+        const miembrosConRol = guild.members.cache.filter((member) =>
+            member.roles.cache.has(config.rolGenesis)
+        );
 
-process.on("uncaughtException", (err) => {
-    console.error("❌ Uncaught Exception:");
-    console.error(err);
-});
+        console.log(`👥 ${miembrosConRol.size} miembros con el rol Genesis encontrados.`);
+
+        for (const member of miembrosConRol.values()) {
+            await crearHiloGenesis(member);
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+
+        console.log("✅ Barrido inicial completado.");
+    } catch (err) {
+        console.error("❌ Error en el barrido inicial:", err);
+    }
+}
 
 // ======================
-// HEARTBEAT
+// HEARTBEAT LOG
 // ======================
-
 setInterval(() => {
     console.log(
         `❤️ Proceso vivo | Discord: ${
@@ -160,48 +124,20 @@ setInterval(() => {
 }, 60000);
 
 // ======================
-// LOGIN Y DIAGNÓSTICO
+// INICIALIZACIÓN
 // ======================
-
-const token = process.env.TOKEN?.trim();
-
-fetch("https://discord.com/api/v10/gateway")
-    .then((r) => console.log("🌍 Test gateway HTTP:", r.status))
-    .catch((e) => console.error("🌍 Test gateway falló:", e.message));
-
-if (!token) {
-    console.error("❌ TOKEN no está configurado en Render.");
-} else {
-    console.log("🔑 TOKEN encontrado. Iniciando login de Discord...");
-
-    client.login(token)
-        .then(() => {
-            console.log("🔄 Login de Discord iniciado correctamente.");
-        })
-        .catch((err) => {
-            console.error("❌ Error al iniciar sesión en Discord:");
-            console.error(err);
-        });
-}
-
-// ======================
-// EXPRESS (RENDER)
-// ======================
-
-const app = express();
-
-app.get("/", (req, res) => {
-    console.log(
-        `🏓 Ping recibido | ${new Date().toLocaleString("es-AR", {
-            timeZone: "America/Argentina/Buenos_Aires"
-        })}`
-    );
-
-    res.send("Genesis Bot funcionando.");
-});
-
-const PORT = process.env.PORT || 3000;
-
 app.listen(PORT, () => {
-    console.log(`🌐 Servidor escuchando en puerto ${PORT}`);
+    console.log(`🌐 Servidor Web listo en puerto ${PORT}`);
+    
+    // Primero Express abre puerto, después Discord inicia sesión
+    const token = process.env.TOKEN?.trim();
+
+    if (!token) {
+        console.error("❌ TOKEN no está configurado en el entorno de Render.");
+    } else {
+        console.log("🔑 Iniciando sesión en Discord...");
+        client.login(token).catch((err) => {
+            console.error("❌ Error al iniciar sesión en Discord:", err);
+        });
+    }
 });
